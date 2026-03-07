@@ -1,0 +1,1 @@
+{"version":3,"file":"feature-disabled.exception.js","sourceRoot":"","sources":["../../../../src/shared/exceptions/feature-disabled.exception.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,MAAM,gBAAgB,CAAC;AAEpD,MAAM,OAAO,wBAAyB,SAAQ,kBAAkB;IAC9D,YAAY,WAAmB;QAC7B,KAAK,CAAC;YACJ,KAAK,EAAE,kBAAkB;YACzB,OAAO,EAAE,YAAY,WAAW,+BAA+B;SAChE,CAAC,CAAC;IACL,CAAC;CACF"}

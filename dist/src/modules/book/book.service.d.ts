@@ -1,0 +1,286 @@
+import { PrismaService } from '../../shared/prisma/prisma.service';
+import { Queue } from 'bullmq';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CreateBookDto, UpdateBookDto, PurchaseBookDto } from './dto/book.dto';
+import { CursorPaginationDto } from '../../shared/types/pagination.type';
+export declare class BookService {
+    private readonly prisma;
+    private readonly pdfQueue;
+    private readonly eventEmitter;
+    constructor(prisma: PrismaService, pdfQueue: Queue, eventEmitter: EventEmitter2);
+    list(tenantId: string, pagination: CursorPaginationDto): Promise<{
+        data: {
+            type: import("@prisma/client").$Enums.BookType;
+            id: string;
+            created_at: Date;
+            _count: {
+                orders: number;
+                reviews: number;
+            };
+            title: string;
+            tags: string[];
+            slug: string;
+            currency: string;
+            price_cents: number;
+            author: string | null;
+            language: string | null;
+            cover_url: string | null;
+        }[];
+        pagination: {
+            nextCursor: string | null;
+            hasMore: boolean;
+        };
+    }>;
+    create(tenantId: string, teacherId: string, dto: CreateBookDto): Promise<{
+        type: import("@prisma/client").$Enums.BookType;
+        id: string;
+        tenant_id: string;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        description: string | null;
+        title: string;
+        teacher_id: string;
+        version: number;
+        tags: string[];
+        slug: string;
+        currency: string;
+        price_cents: number;
+        is_published: boolean;
+        author: string | null;
+        pages: number | null;
+        language: string | null;
+        cover_url: string | null;
+        file_url: string | null;
+        file_size_bytes: bigint | null;
+        file_mime_type: string | null;
+        stock_quantity: number | null;
+        weight_grams: number | null;
+        isbn: string | null;
+    }>;
+    findById(tenantId: string, bookId: string): Promise<{
+        reviews: {
+            id: string;
+            is_verified: boolean;
+            created_at: Date;
+            student_id: string;
+            rating: number;
+            comment: string | null;
+            book_id: string;
+        }[];
+        type: import("@prisma/client").$Enums.BookType;
+        id: string;
+        tenant_id: string;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        description: string | null;
+        title: string;
+        teacher_id: string;
+        version: number;
+        tags: string[];
+        slug: string;
+        currency: string;
+        price_cents: number;
+        is_published: boolean;
+        author: string | null;
+        pages: number | null;
+        language: string | null;
+        cover_url: string | null;
+        file_size_bytes: bigint | null;
+        file_mime_type: string | null;
+        stock_quantity: number | null;
+        weight_grams: number | null;
+        isbn: string | null;
+    }>;
+    update(tenantId: string, bookId: string, dto: UpdateBookDto): Promise<{
+        type: import("@prisma/client").$Enums.BookType;
+        id: string;
+        tenant_id: string;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        description: string | null;
+        title: string;
+        teacher_id: string;
+        version: number;
+        tags: string[];
+        slug: string;
+        currency: string;
+        price_cents: number;
+        is_published: boolean;
+        author: string | null;
+        pages: number | null;
+        language: string | null;
+        cover_url: string | null;
+        file_url: string | null;
+        file_size_bytes: bigint | null;
+        file_mime_type: string | null;
+        stock_quantity: number | null;
+        weight_grams: number | null;
+        isbn: string | null;
+    }>;
+    delete(tenantId: string, bookId: string): Promise<void>;
+    publish(tenantId: string, bookId: string): Promise<{
+        type: import("@prisma/client").$Enums.BookType;
+        id: string;
+        tenant_id: string;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        description: string | null;
+        title: string;
+        teacher_id: string;
+        version: number;
+        tags: string[];
+        slug: string;
+        currency: string;
+        price_cents: number;
+        is_published: boolean;
+        author: string | null;
+        pages: number | null;
+        language: string | null;
+        cover_url: string | null;
+        file_url: string | null;
+        file_size_bytes: bigint | null;
+        file_mime_type: string | null;
+        stock_quantity: number | null;
+        weight_grams: number | null;
+        isbn: string | null;
+    }>;
+    unpublish(tenantId: string, bookId: string): Promise<{
+        type: import("@prisma/client").$Enums.BookType;
+        id: string;
+        tenant_id: string;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        description: string | null;
+        title: string;
+        teacher_id: string;
+        version: number;
+        tags: string[];
+        slug: string;
+        currency: string;
+        price_cents: number;
+        is_published: boolean;
+        author: string | null;
+        pages: number | null;
+        language: string | null;
+        cover_url: string | null;
+        file_url: string | null;
+        file_size_bytes: bigint | null;
+        file_mime_type: string | null;
+        stock_quantity: number | null;
+        weight_grams: number | null;
+        isbn: string | null;
+    }>;
+    getUploadUrl(tenantId: string, bookId: string): Promise<{
+        uploadUrl: string;
+        expiresIn: number;
+    }>;
+    purchase(tenantId: string, bookId: string, studentId: string, dto: PurchaseBookDto): Promise<{
+        orderId: string;
+        status: import("@prisma/client").$Enums.OrderStatus;
+        message: string;
+        paymentId?: undefined;
+        totalCents?: undefined;
+        currency?: undefined;
+        gateway?: undefined;
+        checkoutUrl?: undefined;
+    } | {
+        orderId: string;
+        paymentId: string;
+        totalCents: number;
+        currency: string;
+        gateway: import("@prisma/client").$Enums.PaymentGateway;
+        checkoutUrl: string;
+        status?: undefined;
+        message?: undefined;
+    }>;
+    getMyLibrary(tenantId: string, studentId: string): Promise<({
+        book: {
+            type: import("@prisma/client").$Enums.BookType;
+            id: string;
+            title: string;
+            author: string | null;
+            cover_url: string | null;
+        };
+    } & {
+        id: string;
+        status: import("@prisma/client").$Enums.OrderStatus;
+        tenant_id: string;
+        created_at: Date;
+        updated_at: Date;
+        currency: string;
+        student_id: string;
+        payment_id: string | null;
+        quantity: number;
+        book_id: string;
+        idempotency_key: string;
+        unit_price_cents: number;
+        total_cents: number;
+        download_url: string | null;
+        download_count: number;
+        max_downloads: number;
+        download_expires_at: Date | null;
+        shipping_address: import("@prisma/client/runtime/client").JsonValue | null;
+        tracking_number: string | null;
+        shipped_at: Date | null;
+        delivered_at: Date | null;
+    })[]>;
+    getDownloadUrl(tenantId: string, bookId: string, studentId: string): Promise<{
+        downloadUrl: string;
+        expiresAt: Date;
+    }>;
+    getOrders(tenantId: string, bookId: string): Promise<({
+        student: {
+            email: string;
+            id: string;
+            first_name: string;
+            last_name: string;
+        };
+    } & {
+        id: string;
+        status: import("@prisma/client").$Enums.OrderStatus;
+        tenant_id: string;
+        created_at: Date;
+        updated_at: Date;
+        currency: string;
+        student_id: string;
+        payment_id: string | null;
+        quantity: number;
+        book_id: string;
+        idempotency_key: string;
+        unit_price_cents: number;
+        total_cents: number;
+        download_url: string | null;
+        download_count: number;
+        max_downloads: number;
+        download_expires_at: Date | null;
+        shipping_address: import("@prisma/client/runtime/client").JsonValue | null;
+        tracking_number: string | null;
+        shipped_at: Date | null;
+        delivered_at: Date | null;
+    })[]>;
+    getSalesReport(tenantId: string): Promise<{
+        byBook: (import("@prisma/client").Prisma.PickEnumerable<import("@prisma/client").Prisma.BookOrderGroupByOutputType, ("status" | "book_id")[]> & {
+            _count: {
+                id: number;
+            };
+            _sum: {
+                total_cents: number | null;
+            };
+        })[];
+        totalRevenueCents: number;
+    }>;
+    getReviews(tenantId: string, bookId: string, pagination: CursorPaginationDto): Promise<{
+        id: string;
+        is_verified: boolean;
+        created_at: Date;
+        student_id: string;
+        rating: number;
+        comment: string | null;
+        book_id: string;
+    }[]>;
+}

@@ -1,0 +1,166 @@
+import { SuperAdminService } from './super-admin.service';
+import { UserRole } from '@prisma/client';
+import { AuthenticatedUser } from '../../shared/types/request.type';
+import { UpdateTenantStatusDto, UpdateTenantPlanDto, ToggleFeatureDto } from './dto/super-admin.dto';
+export declare class SuperAdminController {
+    private readonly adminService;
+    constructor(adminService: SuperAdminService);
+    getDashboard(): Promise<{
+        totalTenants: number;
+        activeTenants: number;
+        totalStudents: number;
+        totalRevenueCents: number;
+    }>;
+    listTenants(status?: string, plan?: string): Promise<({
+        _count: {
+            users: number;
+            courses: number;
+        };
+    } & {
+        type: import("@prisma/client").$Enums.TenantType;
+        name: string;
+        subdomain: string;
+        custom_domain: string | null;
+        id: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
+        plan: import("@prisma/client").$Enums.PlanTier;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        plan_expires_at: Date | null;
+        logo_url: string | null;
+        favicon_url: string | null;
+        primary_color: string | null;
+        secondary_color: string | null;
+        landing_template: string | null;
+        max_students: number;
+        max_teachers: number;
+        max_storage_gb: number;
+        features: import("@prisma/client/runtime/client").JsonValue;
+        country_code: string | null;
+        timezone: string | null;
+    })[]>;
+    getTenant(id: string): Promise<{
+        users: {
+            email: string;
+            role: import("@prisma/client").$Enums.UserRole;
+            id: string;
+            tenant_id: string;
+            phone: string | null;
+            password_hash: string;
+            first_name: string;
+            last_name: string;
+            avatar_url: string | null;
+            is_active: boolean;
+            is_verified: boolean;
+            locale: string | null;
+            max_devices: number;
+            last_login_at: Date | null;
+            last_login_ip: string | null;
+            created_at: Date;
+            updated_at: Date;
+            deleted_at: Date | null;
+        }[];
+    } & {
+        type: import("@prisma/client").$Enums.TenantType;
+        name: string;
+        subdomain: string;
+        custom_domain: string | null;
+        id: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
+        plan: import("@prisma/client").$Enums.PlanTier;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        plan_expires_at: Date | null;
+        logo_url: string | null;
+        favicon_url: string | null;
+        primary_color: string | null;
+        secondary_color: string | null;
+        landing_template: string | null;
+        max_students: number;
+        max_teachers: number;
+        max_storage_gb: number;
+        features: import("@prisma/client/runtime/client").JsonValue;
+        country_code: string | null;
+        timezone: string | null;
+    }>;
+    updateStatus(id: string, dto: UpdateTenantStatusDto): Promise<{
+        type: import("@prisma/client").$Enums.TenantType;
+        name: string;
+        subdomain: string;
+        custom_domain: string | null;
+        id: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
+        plan: import("@prisma/client").$Enums.PlanTier;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        plan_expires_at: Date | null;
+        logo_url: string | null;
+        favicon_url: string | null;
+        primary_color: string | null;
+        secondary_color: string | null;
+        landing_template: string | null;
+        max_students: number;
+        max_teachers: number;
+        max_storage_gb: number;
+        features: import("@prisma/client/runtime/client").JsonValue;
+        country_code: string | null;
+        timezone: string | null;
+    }>;
+    updatePlan(id: string, dto: UpdateTenantPlanDto): Promise<{
+        type: import("@prisma/client").$Enums.TenantType;
+        name: string;
+        subdomain: string;
+        custom_domain: string | null;
+        id: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
+        plan: import("@prisma/client").$Enums.PlanTier;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+        plan_expires_at: Date | null;
+        logo_url: string | null;
+        favicon_url: string | null;
+        primary_color: string | null;
+        secondary_color: string | null;
+        landing_template: string | null;
+        max_students: number;
+        max_teachers: number;
+        max_storage_gb: number;
+        features: import("@prisma/client/runtime/client").JsonValue;
+        country_code: string | null;
+        timezone: string | null;
+    }>;
+    impersonate(tenantId: string, admin: AuthenticatedUser): Promise<{
+        token: string;
+    }>;
+    getFeatures(id: string): Promise<string | number | boolean | import("@prisma/client/runtime/client").JsonObject | import("@prisma/client/runtime/client").JsonArray | null>;
+    toggleFeature(id: string, dto: ToggleFeatureDto): Promise<import("@prisma/client/runtime/client").JsonValue>;
+    listUsers(role?: UserRole, tenantId?: string, search?: string): Promise<({
+        tenant: {
+            name: string;
+            subdomain: string;
+        };
+    } & {
+        email: string;
+        role: import("@prisma/client").$Enums.UserRole;
+        id: string;
+        tenant_id: string;
+        phone: string | null;
+        password_hash: string;
+        first_name: string;
+        last_name: string;
+        avatar_url: string | null;
+        is_active: boolean;
+        is_verified: boolean;
+        locale: string | null;
+        max_devices: number;
+        last_login_at: Date | null;
+        last_login_ip: string | null;
+        created_at: Date;
+        updated_at: Date;
+        deleted_at: Date | null;
+    })[]>;
+}

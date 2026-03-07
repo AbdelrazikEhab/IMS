@@ -1,0 +1,660 @@
+// schema.prisma — Multi-Tenant LMS Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum TenantType {
+  PRIVATE_TUTOR
+  SCHOOL
+  LEARNING_CENTER
+  CONTENT_CREATOR
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+  TRIAL
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  DEPARTMENT_HEAD
+  TEACHER
+  ASSISTANT
+  STUDENT
+  PARENT
+  CONTENT_CREATOR
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+  SCHOOL_BASIC
+  SCHOOL_PRO
+  SCHOOL_ENTERPRISE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  AWAITING_ACTIVATION
+  ACTIVE
+  SUSPENDED
+  REFUNDED
+}
+
+enum PaymentGateway {
+  PAYMOB
+  FAWRY
+  TAP
+  STRIPE
+}
+
+enum ContentType {
+  VIDEO
+  PDF
+  AUDIO
+  ATTACHMENT
+  TEXT
+  LIVE_SESSION
+}
+
+enum UploadStatus {
+  PENDING
+  UPLOADING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum BookType {
+  DIGITAL
+  PHYSICAL
+  BOTH
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  PAYMENT
+  IMPERSONATE
+  FEATURE_TOGGLE
+  EXPORT
+}
+
+enum AuditEntity {
+  USER
+  TENANT
+  COURSE
+  BOOK
+  PAYMENT
+  ENROLLMENT
+  FEATURE
+  CONFIG
+  AUDIT_LOG
+}
+
+enum NotifChannel {
+  EMAIL
+  SMS
+  PUSH
+  WHATSAPP
+  IN_APP
+}
+
+enum NotifStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum AIJobType {
+  QUIZ_GENERATION
+  CONTENT_SUMMARY
+  STUDENT_INSIGHT
+  CHAT_RESPONSE
+  BOOK_DESCRIPTION
+}
+
+// ─────────────────────────────────────────────
+// TENANT
+// ─────────────────────────────────────────────
+
+model Tenant {
+  id              String       @id @default(uuid()) @db.Uuid
+  subdomain       String       @unique @db.VarChar(63)
+  custom_domain   String?      @unique
+  name            String
+  type            TenantType   @default(PRIVATE_TUTOR)
+  status          TenantStatus @default(TRIAL)
+  plan            PlanTier     @default(FREE)
+  plan_expires_at DateTime?
+
+  logo_url         String?
+  favicon_url      String?
+  primary_color    String?       @default("#2563EB")
+  secondary_color  String?
+  landing_template String?       @default("classic")
+
+  max_students  Int   @default(50)
+  max_teachers  Int   @default(1)
+  max_storage_gb Float @default(5.0)
+
+  features Json @default("{}")
+
+  country_code String?   @db.Char(2)
+  timezone     String?   @default("Africa/Cairo")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+
+  users          User[]
+  courses        Course[]
+  books          Book[]
+  payments       Payment[]
+  enrollments    Enrollment[]
+  audit_logs     AuditLog[]
+  notifications  Notification[]
+  video_uploads  VideoUpload[]
+  book_orders    BookOrder[]
+  ai_jobs        AIJob[]
+
+  @@index([subdomain])
+  @@index([status, plan])
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenant_id     String    @db.Uuid
+  role          UserRole
+  email         String
+  phone         String?
+  password_hash String
+  first_name    String
+  last_name     String
+  avatar_url    String?
+  is_active     Boolean   @default(true)
+  is_verified   Boolean   @default(false)
+  locale        String?   @default("ar")
+
+  max_devices   Int       @default(3)
+  last_login_at DateTime?
+  last_login_ip String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  tenant         Tenant       @relation(fields: [tenant_id], references: [id])
+  refresh_tokens RefreshToken[]
+  devices        Device[]
+  enrollments    Enrollment[]
+  payments       Payment[]
+  book_orders    BookOrder[]
+  audit_logs     AuditLog[]   @relation("AuditLogActor")
+  ai_jobs        AIJob[]
+
+  @@unique([tenant_id, email])
+  @@index([tenant_id, role])
+  @@index([email])
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash String    @unique
+  device_id  String?   @db.Uuid
+  expires_at DateTime
+  revoked_at DateTime?
+  created_at DateTime  @default(now())
+
+  user   User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [device_id], references: [id])
+
+  @@index([user_id])
+}
+
+model Device {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String   @db.Uuid
+  fingerprint String
+  name        String?
+  user_agent  String?
+  last_ip     String?
+  last_seen_at DateTime @default(now())
+  is_trusted  Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  user           User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  refresh_tokens RefreshToken[]
+
+  @@unique([user_id, fingerprint])
+}
+
+// ─────────────────────────────────────────────
+// ENROLLMENT CODES
+// ─────────────────────────────────────────────
+
+model EnrollmentCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenant_id  String    @db.Uuid
+  teacher_id String    @db.Uuid
+  code       String    @unique @db.VarChar(20)
+  max_uses   Int?
+  uses_count Int       @default(0)
+  expires_at DateTime?
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now())
+
+  @@index([code])
+  @@index([tenant_id])
+}
+
+// ─────────────────────────────────────────────
+// COURSES
+// ─────────────────────────────────────────────
+
+model Course {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenant_id     String    @db.Uuid
+  teacher_id    String    @db.Uuid
+  title         String
+  slug          String
+  description   String?
+  thumbnail_url String?
+  price_cents   Int       @default(0)
+  currency      String    @default("EGP") @db.Char(3)
+  is_published  Boolean   @default(false)
+  is_free       Boolean   @default(false)
+  version       Int       @default(1)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  tenant      Tenant        @relation(fields: [tenant_id], references: [id])
+  modules     CourseModule[]
+  enrollments Enrollment[]
+
+  @@unique([tenant_id, slug])
+  @@index([tenant_id, teacher_id])
+}
+
+model CourseModule {
+  id           String  @id @default(uuid()) @db.Uuid
+  course_id    String  @db.Uuid
+  tenant_id    String  @db.Uuid
+  title        String
+  order_index  Int
+  is_published Boolean @default(false)
+
+  course  Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([course_id, order_index])
+}
+
+model Lesson {
+  id               String      @id @default(uuid()) @db.Uuid
+  module_id        String      @db.Uuid
+  tenant_id        String      @db.Uuid
+  title            String
+  content_type     ContentType
+  content_url      String?
+  video_id         String?     @db.Uuid
+  order_index      Int
+  duration_seconds Int?
+  is_published     Boolean     @default(false)
+  is_preview       Boolean     @default(false)
+
+  module CourseModule  @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  video  Video?        @relation(fields: [video_id], references: [id])
+
+  @@index([module_id, order_index])
+}
+
+// ─────────────────────────────────────────────
+// VIDEO
+// ─────────────────────────────────────────────
+
+model VideoUpload {
+  id              String       @id @default(uuid()) @db.Uuid
+  tenant_id       String       @db.Uuid
+  user_id         String       @db.Uuid
+  course_id       String?      @db.Uuid
+  filename        String
+  filesize_bytes  BigInt
+  mime_type       String
+  status          UploadStatus @default(PENDING)
+  progress_pct    Float        @default(0)
+  bunny_video_id  String?
+  error_message   String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+  video  Video?
+
+  @@index([tenant_id, status])
+}
+
+model Video {
+  id               String       @id @default(uuid()) @db.Uuid
+  tenant_id        String       @db.Uuid
+  upload_id        String?      @unique @db.Uuid
+  bunny_video_id   String       @unique
+  title            String
+  duration_seconds Int?
+  resolution       String?
+  playback_url     String
+  thumbnail_url    String?
+  status           UploadStatus @default(PROCESSING)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  upload  VideoUpload? @relation(fields: [upload_id], references: [id])
+  lessons Lesson[]
+  views   VideoView[]
+
+  @@index([tenant_id])
+}
+
+model VideoView {
+  id              String   @id @default(uuid()) @db.Uuid
+  video_id        String   @db.Uuid
+  user_id         String   @db.Uuid
+  watch_seconds   Int      @default(0)
+  completion_pct  Float    @default(0)
+  last_watched_at DateTime @default(now())
+
+  video Video @relation(fields: [video_id], references: [id], onDelete: Cascade)
+
+  @@unique([video_id, user_id])
+}
+
+// ─────────────────────────────────────────────
+// BOOKS
+// ─────────────────────────────────────────────
+
+model Book {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenant_id     String   @db.Uuid
+  teacher_id    String   @db.Uuid
+  title         String
+  slug          String
+  description   String?
+  cover_url     String?
+  type          BookType @default(DIGITAL)
+
+  price_cents Int    @default(0)
+  currency    String @default("EGP") @db.Char(3)
+
+  file_url        String?
+  file_size_bytes BigInt?
+  file_mime_type  String?
+
+  stock_quantity Int?
+  weight_grams   Int?
+
+  isbn         String?  @unique
+  author       String?
+  pages        Int?
+  language     String?  @default("ar")
+  tags         String[]
+  is_published Boolean  @default(false)
+  version      Int      @default(1)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  tenant  Tenant       @relation(fields: [tenant_id], references: [id])
+  orders  BookOrder[]
+  reviews BookReview[]
+
+  @@unique([tenant_id, slug])
+  @@index([tenant_id, teacher_id, is_published])
+}
+
+model BookOrder {
+  id              String      @id @default(uuid()) @db.Uuid
+  tenant_id       String      @db.Uuid
+  student_id      String      @db.Uuid
+  book_id         String      @db.Uuid
+  payment_id      String?     @db.Uuid
+  idempotency_key String      @unique @db.VarChar(100)
+
+  status          OrderStatus @default(PENDING)
+  quantity        Int         @default(1)
+  unit_price_cents Int
+  total_cents     Int
+  currency        String      @default("EGP") @db.Char(3)
+
+  download_url        String?
+  download_count      Int       @default(0)
+  max_downloads       Int       @default(3)
+  download_expires_at DateTime?
+
+  shipping_address Json?
+  tracking_number  String?
+  shipped_at       DateTime?
+  delivered_at     DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenant_id], references: [id])
+  student User     @relation(fields: [student_id], references: [id])
+  book    Book     @relation(fields: [book_id], references: [id])
+  payment Payment? @relation(fields: [payment_id], references: [id])
+
+  @@index([tenant_id, student_id])
+  @@index([tenant_id, book_id])
+  @@index([idempotency_key])
+}
+
+model BookReview {
+  id          String   @id @default(uuid()) @db.Uuid
+  book_id     String   @db.Uuid
+  student_id  String   @db.Uuid
+  rating      Int
+  comment     String?
+  is_verified Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  book Book @relation(fields: [book_id], references: [id], onDelete: Cascade)
+
+  @@unique([book_id, student_id])
+}
+
+// ─────────────────────────────────────────────
+// PAYMENTS
+// ─────────────────────────────────────────────
+
+model Payment {
+  id         String         @id @default(uuid()) @db.Uuid
+  tenant_id  String         @db.Uuid
+  student_id String         @db.Uuid
+
+  amount_cents    Int
+  currency        String         @default("EGP") @db.Char(3)
+  gateway         PaymentGateway
+  status          PaymentStatus  @default(PENDING)
+  idempotency_key String         @unique @db.VarChar(100)
+
+  external_ref    String?
+  gateway_payload Json?
+
+  course_id    String?  @db.Uuid
+  activated_at DateTime?
+  activated_by String?  @db.Uuid
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenant_id], references: [id])
+  student     User         @relation(fields: [student_id], references: [id])
+  book_orders BookOrder[]
+  enrollment  Enrollment?
+
+  @@index([tenant_id, student_id])
+  @@index([idempotency_key])
+  @@index([external_ref])
+}
+
+model Enrollment {
+  id         String        @id @default(uuid()) @db.Uuid
+  tenant_id  String        @db.Uuid
+  student_id String        @db.Uuid
+  course_id  String        @db.Uuid
+  payment_id String?       @unique @db.Uuid
+
+  status       PaymentStatus @default(PENDING)
+  enrolled_at  DateTime?
+  activated_at DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenant_id], references: [id])
+  student User     @relation(fields: [student_id], references: [id])
+  course  Course   @relation(fields: [course_id], references: [id])
+  payment Payment? @relation(fields: [payment_id], references: [id])
+
+  @@unique([tenant_id, student_id, course_id])
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  tenant_id  String?     @db.Uuid
+  actor_id   String?     @db.Uuid
+  actor_role UserRole?
+
+  action      AuditAction
+  entity_type AuditEntity
+  entity_id   String?     @db.VarChar(100)
+
+  old_values Json?
+  new_values Json?
+  metadata   Json?
+
+  ip_address     String  @db.VarChar(45)
+  user_agent     String?
+  request_id     String? @db.Uuid
+  impersonated_by String? @db.Uuid
+
+  created_at DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+  actor  User?   @relation("AuditLogActor", fields: [actor_id], references: [id])
+
+  @@index([tenant_id, created_at])
+  @@index([actor_id, created_at])
+  @@index([entity_type, entity_id])
+  @@index([action, created_at])
+  @@index([ip_address])
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenant_id   String      @db.Uuid
+  user_id     String      @db.Uuid
+  channel     NotifChannel
+  status      NotifStatus @default(PENDING)
+  template_key String
+  subject     String?
+  payload     Json
+  external_id String?
+  error_message String?
+  sent_at     DateTime?
+  read_at     DateTime?
+  created_at  DateTime    @default(now())
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id, user_id, status])
+}
+
+// ─────────────────────────────────────────────
+// AI JOBS
+// ─────────────────────────────────────────────
+
+model AIJob {
+  id           String       @id @default(uuid()) @db.Uuid
+  tenant_id    String       @db.Uuid
+  user_id      String       @db.Uuid
+  type         AIJobType
+  status       UploadStatus @default(PENDING)
+  input        Json
+  output       Json?
+  tokens_used  Int?
+  error_message String?
+  created_at   DateTime     @default(now())
+  completed_at DateTime?
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+  user   User   @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id, type, status])
+}
+
+// ─────────────────────────────────────────────
+// ROW LEVEL SECURITY (RLS) POLICIES
+// ─────────────────────────────────────────────
+// After running migrations, execute the following SQL to enable RLS:
+//
+// ALTER TABLE "Tenant" ENABLE ROW LEVEL SECURITY;
+// ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
+// ALTER TABLE "Course" ENABLE ROW LEVEL SECURITY;
+// ALTER TABLE "Book" ENABLE ROW LEVEL SECURITY;
+// ALTER TABLE "Payment" ENABLE ROW LEVEL SECURITY;
+// ALTER TABLE "Enrollment" ENABLE ROW LEVEL SECURITY;
+// ALTER TABLE "AuditLog" ENABLE ROW LEVEL SECURITY;
+// ALTER TABLE "AIJob" ENABLE ROW LEVEL SECURITY;
+//
+// CREATE POLICY tenant_isolation_policy ON "User" 
+// USING (tenant_id::text = current_setting('app.current_tenant_id', true));
+//
+// ... (Apply to all tables with tenant_id)
