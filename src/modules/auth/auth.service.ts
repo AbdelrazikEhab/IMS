@@ -19,7 +19,7 @@ import {
   ChangePasswordDto,
 } from './dto/auth.dto';
 import { UserRole } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { EnrollmentCodeExpiredException } from '../../shared/exceptions/enrollment-code-expired.exception';
 
 @Injectable()

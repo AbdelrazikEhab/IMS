@@ -79,9 +79,20 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Export for Vercel
 export default async (req: any, res: any) => {
-  if (!cachedApp) {
-    await bootstrap();
+  try {
+    if (!cachedApp) {
+      await bootstrap();
+    }
+    return cachedApp(req, res);
+  } catch (err) {
+    console.error('CRITICAL: App failed to bootstrap', err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Critical system error during startup',
+        error: err.message,
+      });
+    }
   }
-  return cachedApp(req, res);
 };
 

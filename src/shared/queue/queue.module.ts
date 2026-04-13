@@ -11,6 +11,7 @@ import { QUEUE_NAMES } from './queue.constants';
       useFactory: (config: ConfigService) => ({
         connection: {
           url: config.get<string>('REDIS_URL', 'redis://localhost:6379'),
+          lazyConnect: true,
         },
         defaultJobOptions: {
           attempts: 3,
