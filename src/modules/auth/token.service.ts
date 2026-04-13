@@ -68,7 +68,7 @@ export class TokenService {
       take: 1000,
     });
 
-    let matchedToken = null;
+    let matchedToken: any = null;
     for (const token of tokens) {
       const matches = await bcrypt.compare(refreshToken, token.token_hash);
       if (matches) {
