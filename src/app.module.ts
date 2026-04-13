@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { LoggerModule } from 'nestjs-pino';
 
 // Shared
 import { PrismaModule } from './shared/prisma/prisma.module';
@@ -38,6 +39,11 @@ import { AIModule } from './modules/ai/ai.module';
       },
     ]),
     EventEmitterModule.forRoot(),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
+      },
+    }),
     PrismaModule,
     RedisModule,
     QueueModule,
