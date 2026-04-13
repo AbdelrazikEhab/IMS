@@ -1,8 +1,10 @@
 // schema.prisma — Multi-Tenant LMS Platform
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
+
 
 datasource db {
   provider = "postgresql"

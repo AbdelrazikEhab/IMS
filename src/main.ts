@@ -5,6 +5,8 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 
+let cachedApp: any;
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
@@ -58,9 +60,28 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`Server running on: http://localhost:${port}`);
-  console.log(`Swagger docs at: http://localhost:${port}/docs`);
+  if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.PORT || 3000;
+    await app.listen(port);
+    console.log(`Server running on: http://localhost:${port}`);
+    console.log(`Swagger docs at: http://localhost:${port}/docs`);
+  } else {
+    // For Vercel, we need to init but not listen
+    await app.init();
+    cachedApp = app.getHttpAdapter().getInstance();
+  }
 }
-bootstrap();
+
+// Global bootstrap for local/standard runs
+if (process.env.NODE_ENV !== 'production') {
+  bootstrap();
+}
+
+// Export for Vercel
+export default async (req: any, res: any) => {
+  if (!cachedApp) {
+    await bootstrap();
+  }
+  return cachedApp(req, res);
+};
+

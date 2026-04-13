@@ -156,4 +156,14 @@ export class AuthController {
   ) {
     return this.authService.getMe(user.id, tenantId);
   }
+
+  @Get('check-status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Check authentication status' })
+  checkStatus(@CurrentUser() user: any) {
+    return {
+      isAuthenticated: true,
+      user,
+    };
+  }
 }
