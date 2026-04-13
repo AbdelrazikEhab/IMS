@@ -67,7 +67,9 @@ async function bootstrap() {
     console.log(`Swagger docs at: http://localhost:${port}/docs`);
   } else {
     // For Vercel, we need to init but not listen
+    console.log('Bootstrapping: Starting app.init()...');
     await app.init();
+    console.log('Bootstrapping: app.init() complete.');
     cachedApp = app.getHttpAdapter().getInstance();
   }
 }

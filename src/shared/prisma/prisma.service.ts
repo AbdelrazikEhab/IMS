@@ -24,8 +24,9 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    await this.$connect();
-    this.logger.log('Prisma connected to database');
+    // We don't await $connect() here to avoid blocking serverless startup.
+    // Prisma will connect automatically on the first query.
+    this.logger.log('Prisma initialized (lazy connection)');
   }
 
   async onModuleDestroy() {
